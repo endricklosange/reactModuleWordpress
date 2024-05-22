@@ -1,42 +1,38 @@
 const { useState } = wp.element;
+import { ImageSlider } from './ImageSlider'
+import { ProductForm } from './ProductForm'
+import { imageSlidersData } from '../data/imageSlidersData'
 
-export function App  ()  {
+
+export function App() {
   const [currentDiv, setCurrentDiv] = useState(1);
 
   const handleContinue = () => {
-    if (currentDiv < 3) {
+    if (currentDiv < 6) {
       setCurrentDiv(currentDiv + 1);
-    } 
+    }
   };
+
   const handleBack = () => {
-    if (currentDiv <= 3) {
+    if (currentDiv > 1) {
       setCurrentDiv(currentDiv - 1);
-    } 
+    }
   };
+
 
   return (
     <div>
-      {currentDiv === 1 && (
-        <div className="transition-enter">
-          <h2>Div 1</h2>
-          <button onClick={handleContinue}>Continuer</button>
-        </div>
-      )}
-      {currentDiv === 2 && (
-        <div className="transition-enter">
-          <h2>Div 2</h2>
-          <button onClick={handleContinue}>Continuer</button>
-          <button onClick={handleBack}>Retour</button>
-        </div>
-      )}
-      {currentDiv === 3 && (
-        <div className="transition-enter">
-          <h2>Div 3</h2>
-          <button onClick={handleContinue}>Continuer</button>
-          <button onClick={handleBack}>Retour</button>
-        </div>
+      
+      {currentDiv <= 5 ? (
+        <ImageSlider
+          title={imageSlidersData[currentDiv - 1].title}
+          images={imageSlidersData[currentDiv - 1].images}
+          handleContinue={handleContinue}
+          handleBack={currentDiv > 1 ? handleBack : null}
+        />
+      ) : (
+        <ProductForm handleContinue={handleContinue} handleBack={handleBack} />
       )}
     </div>
   );
-};
-
+}

@@ -2,7 +2,7 @@
   "name": "base",
   "version": "1.0.0",
   "main": "index.js",
-   "scripts": {
+  "scripts": {
     "build": "wp-scripts build",
     "start": "wp-scripts start"
   },
@@ -11,5 +11,11 @@
   "description": "",
   "devDependencies": {
     "@wordpress/scripts": "^27.8.0"
+  },
+  "dependencies": {
+    "@splidejs/react-splide": "^0.7.12",
+    "@splidejs/splide": "^4.1.4",
+    "react-slick": "^0.30.2",
+    "slick-carousel": "^1.8.1"
   }
 }

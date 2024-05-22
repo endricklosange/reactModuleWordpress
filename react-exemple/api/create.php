@@ -3,7 +3,7 @@
 add_action( 'rest_api_init', 'register_produits_api_routes_create' );
 
 function register_produits_api_routes_create() {
-    register_rest_route( 'produits-search-api/v1', '/insert', array(
+    register_rest_route( 'produits-search-api/v1', '/insert/(?P<id>\d+)', array(
         'methods' => 'POST',
         'callback' => 'insert_produit_data',
     ) );
@@ -24,6 +24,7 @@ function insert_produit_data( $request ) {
     $color = $parameters['color'];
     $size = $parameters['size'];
     $state = $parameters['state'];
+    $status = $parameters['status'];
     $name = $parameters['name'];
 
     // Insérer les données dans la table 'produits'
@@ -40,6 +41,7 @@ function insert_produit_data( $request ) {
             'size' => $size,
             'state' => $state,
             'name' => $name,
+            'status' => $status,
             'user_id' => $user_id,
         ) 
     );

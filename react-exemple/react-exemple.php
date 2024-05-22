@@ -29,6 +29,9 @@ function ajouter_avant_body()
 <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 <script type="text/javascript" src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
 <script type="text/javascript" src="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+<link rel="stylesheet" href="/wp-content/plugins/react-exemple/assets/css/splide.min.css">
+<link rel="stylesheet" href="/wp-content/plugins/react-exemple/assets/css/ImageSlider.css">
+
 ';
 }
 add_action('wp_footer', 'ajouter_avant_body');
