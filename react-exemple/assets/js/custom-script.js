@@ -1,4 +1,4 @@
-var options = {
+const options = {
     beforeSend: function(xhr) {
         xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
 

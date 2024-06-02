@@ -6,9 +6,9 @@ function register_produits_api_routes_get_all() {
     register_rest_route( 'produits-search-api/v1', '/all', array(
         'methods' => 'GET',
         'callback' => 'get_all_produits_and_user',
-        'permission_callback' => function () {
+        /*'permission_callback' => function () {
             return current_user_can( 'edit_posts' );
-        }
+        }*/
     ) );
 }
 

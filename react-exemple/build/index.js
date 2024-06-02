@@ -2813,36 +2813,72 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _ImageSlider__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ImageSlider */ "./component/ImageSlider.jsx");
 /* harmony import */ var _ProductForm__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ProductForm */ "./component/ProductForm.jsx");
-/* harmony import */ var _data_imageSlidersData__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../data/imageSlidersData */ "./data/imageSlidersData.jsx");
 
 const {
-  useState
+  useState,
+  useEffect
 } = wp.element;
 
 
-
 function App() {
-  const [currentDiv, setCurrentDiv] = useState(1);
-  const handleContinue = () => {
-    if (currentDiv < 6) {
-      setCurrentDiv(currentDiv + 1);
-    }
+  const [currentDiv, setCurrentDiv] = useState(0);
+  const [selections, setSelections] = useState({});
+  const [data, setData] = useState([]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const endpoints = ['/wp-json/genres-search-api/v1/all', `/wp-json/parentcategories-search-api/v1/by-genre/${selections[0]}`, `/wp-json/categories-search-api/v1/by-parent/${selections[1]}`, `/wp-json/sizes-search-api/v1/by-category/${selections[2]}`, '/wp-json/colors-search-api/v1/all'];
+      const endpoint = endpoints[currentDiv] || '';
+      if (!endpoint) return;
+      try {
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const result = await response.json();
+        const images = result.map(item => ({
+          id: item.id,
+          label: item.name,
+          src: 'https://via.placeholder.com/150' // Replace with the real image URL if available
+        }));
+        setData(images);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, [currentDiv, selections]);
+  const handleContinue = () => setCurrentDiv(prev => prev + 1);
+  const handleBack = () => setCurrentDiv(prev => prev - 1);
+  const updateSelections = selected => {
+    const isMultipleSelection = currentDiv === 3 || currentDiv === 4;
+    const newSelections = isMultipleSelection ? {
+      ...selections,
+      [currentDiv]: [...(selections[currentDiv] || []), selected]
+    } : {
+      ...selections,
+      [currentDiv]: selected.id,
+      label: selected.label
+    };
+    setSelections(newSelections);
   };
-  const handleBack = () => {
-    if (currentDiv > 1) {
-      setCurrentDiv(currentDiv - 1);
-    }
+  const handleFinish = () => {
+    const selectionsJson = JSON.stringify(selections);
+    console.log('Final selections:', selectionsJson);
+    alert(`Selections: ${selectionsJson}`);
   };
-  return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, currentDiv <= 5 ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_ImageSlider__WEBPACK_IMPORTED_MODULE_1__.ImageSlider, {
-    title: _data_imageSlidersData__WEBPACK_IMPORTED_MODULE_3__.imageSlidersData[currentDiv - 1].title,
-    images: _data_imageSlidersData__WEBPACK_IMPORTED_MODULE_3__.imageSlidersData[currentDiv - 1].images,
+  const titles = ["Genres", "Parent Categories", "Categories", "Sizes", "Colors"];
+  return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, currentDiv < 5 ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_ImageSlider__WEBPACK_IMPORTED_MODULE_1__.ImageSlider, {
+    title: titles[currentDiv],
+    images: data,
     handleContinue: handleContinue,
-    handleBack: currentDiv > 1 ? handleBack : null
+    handleBack: handleBack,
+    selectedItems: selections[currentDiv] || [],
+    updateSelections: updateSelections,
+    currentDiv: currentDiv
   }) : (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_ProductForm__WEBPACK_IMPORTED_MODULE_2__.ProductForm, {
-    handleContinue: handleContinue,
+    handleContinue: handleFinish,
     handleBack: handleBack
   }));
 }
+;
 
 /***/ }),
 
@@ -2868,39 +2904,95 @@ const {
   useEffect,
   useState
 } = wp.element;
+function getPerPageValue(imagesLength) {
+  const width = window.innerWidth;
+  if (width >= 1024) {
+    return imagesLength <= 3 ? 3 : 4;
+  } else if (width >= 768) {
+    return 2;
+  } else {
+    return 1;
+  }
+}
 function ImageSlider({
   title,
   images,
   handleContinue,
-  handleBack
+  handleBack,
+  selectedItems,
+  updateSelections,
+  currentDiv
 }) {
-  // Calculate the value of perPage based on the number of images
-  const perPage = images.length <= 3 ? 3 : 4;
-
-  // Create a reference for the Splide instance
   const splideRef = useRef(null);
-
-  // State to manage fade animation
+  const [perPage, setPerPage] = useState(getPerPageValue(images.length));
   const [loaded, setLoaded] = useState(false);
   const [triggerAnimation, setTriggerAnimation] = useState(false);
   useEffect(() => {
-    // Set the state to `true` after mounting to trigger the initial animation
     setLoaded(true);
-    setTriggerAnimation(true); // Trigger the initial animation
-  }, []);
+    setTriggerAnimation(true);
+    const handleResize = () => {
+      setPerPage(getPerPageValue(images.length));
+    };
+    setPerPage(getPerPageValue(images.length));
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [images.length]);
   const handleButtonClick = callback => {
-    setTriggerAnimation(false); // Reset the animation
+    setTriggerAnimation(false);
     setTimeout(() => {
-      callback(); // Call the callback function (handleContinue or handleBack)
-      setTriggerAnimation(true); // Trigger the animation after update
+      callback();
+      setTriggerAnimation(true);
     }, 0);
   };
-
-  // Function to reset the slider position
   const resetSlider = () => {
     if (splideRef.current) {
-      splideRef.current.go(0); // Reset to the first slide
+      splideRef.current.go(0);
     }
+  };
+  const isMultipleSelection = title === 'Colors' || title === 'Sizes';
+  const isIdSelected = (items, id) => {
+    for (let item of items) {
+      if (Array.isArray(item)) {
+        if (isIdSelected(item, id)) {
+          return true;
+        }
+      } else {
+        if (item === id) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  const removeIdFromItems = (items, id) => {
+    return items.map(item => {
+      if (Array.isArray(item)) {
+        const filteredItem = removeIdFromItems(item, id);
+        return filteredItem.length > 0 ? filteredItem : null;
+      }
+      return item !== id ? item : null;
+    }).filter(item => item !== null);
+  };
+  const handleImageClick = (imageLabel, imageId) => {
+    let updatedSelection;
+    if (isMultipleSelection) {
+      if (isIdSelected(selectedItems, imageId)) {
+        console.log('already selected');
+        updatedSelection = selectedItems.filter(id => id !== imageId);
+      } else {
+        updatedSelection = imageId;
+      }
+    } else {
+      updatedSelection = {
+        id: imageId,
+        label: imageLabel
+      };
+    }
+    updateSelections(updatedSelection);
+    console.log('selectedItems', selectedItems);
+    console.log('updatedSelection', updatedSelection);
   };
   return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: "transition-enter"
@@ -2911,28 +3003,35 @@ function ImageSlider({
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_splidejs_react_splide__WEBPACK_IMPORTED_MODULE_1__.Splide, {
     options: {
       rewind: true,
-      perPage: perPage
+      perPage: perPage,
+      perMove: 1
     },
-    "aria-label": "My Favorite Images",
-    ref: splideRef // Assign the reference to Splide
+    "aria-label": "Image Slider",
+    ref: splideRef
   }, images.map((image, index) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_splidejs_react_splide__WEBPACK_IMPORTED_MODULE_1__.SplideSlide, {
     key: index
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
-    className: `imgCard ${loaded && triggerAnimation ? 'fade-in' : ''}`
+    className: `imgCard ${triggerAnimation ? 'fade-in' : ''} ${selectedItems.includes(image.id) ? 'selected' : ''}`,
+    onClick: () => handleImageClick(image.label, image.id)
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("h2", null, image.label), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: image.src,
     alt: image.label
   }))))))), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("button", {
     onClick: () => {
-      resetSlider();
-      handleButtonClick(handleContinue);
-    }
-  }, "Continue"), handleBack && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("button", {
+      if (selectedItems.length > 0) {
+        resetSlider();
+        handleButtonClick(handleContinue);
+      } else {
+        // alert("Please select at least one item to continue.");
+      }
+    },
+    disabled: selectedItems.length === 0
+  }, "Continue"), currentDiv !== 0 && handleBack && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("button", {
     onClick: () => {
       resetSlider();
       handleButtonClick(handleBack);
     }
-  }, "Back"));
+  }, "Retour"));
 }
 
 /***/ }),
@@ -2970,101 +3069,6 @@ function ProductForm({
     onClick: handleBack
   }, "Retour"));
 }
-
-/***/ }),
-
-/***/ "./data/imageSlidersData.jsx":
-/*!***********************************!*\
-  !*** ./data/imageSlidersData.jsx ***!
-  \***********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   imageSlidersData: () => (/* binding */ imageSlidersData)
-/* harmony export */ });
-const imageSlidersData = [{
-  title: 'Div 1',
-  images: [{
-    src: 'https://via.placeholder.com/150',
-    label: 'Homme'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Femme'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Enfant'
-  }]
-}, {
-  title: 'Div 2',
-  images: [{
-    src: 'https://via.placeholder.com/150',
-    label: 'Haut'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Bas'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Accesoires'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Sneackers'
-  }]
-}, {
-  title: 'Div 3',
-  images: [{
-    src: 'https://via.placeholder.com/150',
-    label: 'Veste'
-  }, {
-    src: 'https://via.placeholder.com/151',
-    label: 'T-shirt'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Pull'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Manteau'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Débardeurs'
-  }]
-}, {
-  title: 'Div 4',
-  images: [{
-    src: 'https://via.placeholder.com/150',
-    label: 'Red'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Black'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Bleu'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Yellow'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'Brown'
-  }]
-}, {
-  title: 'Div 5',
-  images: [{
-    src: 'https://via.placeholder.com/150',
-    label: 'XS'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'M'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'L'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'XL'
-  }, {
-    src: 'https://via.placeholder.com/150',
-    label: 'XXl'
-  }]
-}];
 
 /***/ }),
 

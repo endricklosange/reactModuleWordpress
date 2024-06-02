@@ -9,3 +9,6 @@
     opacity: 1;
     transform: translateY(0);
 }
+.imgCard.selected {
+    border: 2px solid #000;
+}
